@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[31,)"
+issueTrackerURL="https://github.com/JAD3N/mc-wrench/issues"
+
+[[mods]]
+modId="wrench"
+version="${file.jarVersion}"
+displayName="Wrench"
+updateJSONURL="https://raw.githubusercontent.com/JAD3N/mc-wrench/master/update.json"
+authors="JAD3N"
+description='''
+Adds the ability to rotate blocks in Minecraft using a wrench.
+'''
+
+[[dependencies.wrench]]
+    modId="forge"
+    mandatory=true
+    versionRange="[31,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.wrench]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.15.2]"
+    ordering="NONE"
+    side="BOTH"
