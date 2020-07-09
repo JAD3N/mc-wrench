@@ -9,7 +9,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class ModItems {
-    public static final DeferredRegister<Item> ITEMS = new DeferredRegister<>(ForgeRegistries.ITEMS, Wrench.MOD_ID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, Wrench.MOD_ID);
     public static final RegistryObject<Item> WRENCH_ITEM = ITEMS.register("wrench", () -> new WrenchItem(
         new Item.Properties()
             .group(ItemGroup.TOOLS)

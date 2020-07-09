@@ -14,9 +14,10 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemUseContext;
 import net.minecraft.state.DirectionProperty;
 import net.minecraft.state.EnumProperty;
-import net.minecraft.state.IProperty;
+import net.minecraft.state.Property;
 import net.minecraft.state.properties.BlockStateProperties;
 import net.minecraft.state.properties.ChestType;
+import net.minecraft.state.properties.SlabType;
 import net.minecraft.util.ActionResultType;
 import net.minecraft.util.Direction;
 import net.minecraft.util.SoundCategory;
@@ -36,6 +37,10 @@ public class WrenchItem extends Item {
         BlockState newState = null;
 
         if(isRotationAllowed(state)) {
+            if(newState == null) {
+                newState = rotateSlabType(world, pos, state);
+            }
+
             // try rotate direction
             if(newState == null) {
                 newState = rotateDirection(world, pos, state);
@@ -84,12 +89,17 @@ public class WrenchItem extends Item {
         }
 
         // check block is not extended (e.g. pistons)
-        if(state.has(BlockStateProperties.EXTENDED) && state.get(BlockStateProperties.EXTENDED)) {
+        if(state.func_235901_b_(BlockStateProperties.EXTENDED) && state.get(BlockStateProperties.EXTENDED)) {
             return false;
         }
 
         // check block is not a part of a chest
-        if(state.has(BlockStateProperties.CHEST_TYPE) && state.get(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
+        if(state.func_235901_b_(BlockStateProperties.CHEST_TYPE) && state.get(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
+            return false;
+        }
+
+        // check if double slab
+        if(state.func_235901_b_(BlockStateProperties.SLAB_TYPE) && state.get(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
             return false;
         }
 
@@ -114,8 +124,8 @@ public class WrenchItem extends Item {
         return state;
     }
 
-    protected static <T extends Comparable<T>> BlockState rotateProperty(BlockState state, IProperty<T> property, Predicate<T> filter) {
-        if(!state.has(property)) {
+    protected static <T extends Comparable<T>> BlockState rotateProperty(BlockState state, Property<T> property, Predicate<T> filter) {
+        if(!state.func_235901_b_(property)) {
             return null;
         }
 
@@ -160,13 +170,7 @@ public class WrenchItem extends Item {
 
         Block block = state.getBlock();
         Direction direction = state.get(directionProperty);
-        Direction[] directions = block.getValidRotations(state, world, pos);
-
-        // check directions is valid
-        if(directions == null) {
-            directions = directionProperty.getAllowedValues().toArray(new Direction[0]);
-        }
-
+        Direction[] directions = directionProperty.getAllowedValues().toArray(new Direction[0]);
 
         return rotateProperty(state, directionProperty, (dir) -> {
             if(dir == direction) {
@@ -201,16 +205,28 @@ public class WrenchItem extends Item {
         return rotateProperty(state, axisProperty, null);
     }
 
+    protected static BlockState rotateSlabType(IWorld world, BlockPos pos, BlockState state) {
+        EnumProperty<SlabType> slabTypeProperty = getSlabTypeProperty(state);
+
+        // check facing property
+        if(slabTypeProperty == null) {
+            return null;
+        }
+
+        // remove double slab from rotation
+        return rotateProperty(state, slabTypeProperty, (slabType) -> slabType == SlabType.DOUBLE);
+    }
+
     protected static BlockState rotateRotation(IWorld world, BlockPos pos, BlockState state) {
         return rotateProperty(state, BlockStateProperties.ROTATION_0_15, null);
     }
 
     protected static DirectionProperty getDirectionProperty(BlockState state) {
-        if(state.has(BlockStateProperties.FACING)) {
+        if(state.func_235901_b_(BlockStateProperties.FACING)) {
             return BlockStateProperties.FACING;
-        } else if(state.has(BlockStateProperties.FACING_EXCEPT_UP)) {
+        } else if(state.func_235901_b_(BlockStateProperties.FACING_EXCEPT_UP)) {
             return BlockStateProperties.FACING_EXCEPT_UP;
-        } else if(state.has(BlockStateProperties.HORIZONTAL_FACING)) {
+        } else if(state.func_235901_b_(BlockStateProperties.HORIZONTAL_FACING)) {
             return BlockStateProperties.HORIZONTAL_FACING;
         } else {
             return null;
@@ -218,10 +234,18 @@ public class WrenchItem extends Item {
     }
 
     protected static EnumProperty<Direction.Axis> getAxisProperty(BlockState state) {
-        if(state.has(BlockStateProperties.HORIZONTAL_AXIS)) {
+        if(state.func_235901_b_(BlockStateProperties.HORIZONTAL_AXIS)) {
             return BlockStateProperties.HORIZONTAL_AXIS;
-        } else if(state.has(BlockStateProperties.AXIS)) {
+        } else if(state.func_235901_b_(BlockStateProperties.AXIS)) {
             return BlockStateProperties.AXIS;
+        } else {
+            return null;
+        }
+    }
+
+    protected static EnumProperty<SlabType> getSlabTypeProperty(BlockState state) {
+        if(state.func_235901_b_(BlockStateProperties.SLAB_TYPE)) {
+            return BlockStateProperties.SLAB_TYPE;
         } else {
             return null;
         }
