@@ -89,17 +89,17 @@ public class WrenchItem extends Item {
         }
 
         // check block is not extended (e.g. pistons)
-        if(state.func_235901_b_(BlockStateProperties.EXTENDED) && state.get(BlockStateProperties.EXTENDED)) {
+        if(state.hasProperty(BlockStateProperties.EXTENDED) && state.get(BlockStateProperties.EXTENDED)) {
             return false;
         }
 
         // check block is not a part of a chest
-        if(state.func_235901_b_(BlockStateProperties.CHEST_TYPE) && state.get(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
+        if(state.hasProperty(BlockStateProperties.CHEST_TYPE) && state.get(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
             return false;
         }
 
         // check if double slab
-        if(state.func_235901_b_(BlockStateProperties.SLAB_TYPE) && state.get(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
+        if(state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.get(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
             return false;
         }
 
@@ -125,7 +125,7 @@ public class WrenchItem extends Item {
     }
 
     protected static <T extends Comparable<T>> BlockState rotateProperty(BlockState state, Property<T> property, Predicate<T> filter) {
-        if(!state.func_235901_b_(property)) {
+        if(!state.hasProperty(property)) {
             return null;
         }
 
@@ -170,7 +170,6 @@ public class WrenchItem extends Item {
 
         Block block = state.getBlock();
         Direction direction = state.get(directionProperty);
-        Direction[] directions = directionProperty.getAllowedValues().toArray(new Direction[0]);
 
         return rotateProperty(state, directionProperty, (dir) -> {
             if(dir == direction) {
@@ -222,11 +221,11 @@ public class WrenchItem extends Item {
     }
 
     protected static DirectionProperty getDirectionProperty(BlockState state) {
-        if(state.func_235901_b_(BlockStateProperties.FACING)) {
+        if(state.hasProperty(BlockStateProperties.FACING)) {
             return BlockStateProperties.FACING;
-        } else if(state.func_235901_b_(BlockStateProperties.FACING_EXCEPT_UP)) {
+        } else if(state.hasProperty(BlockStateProperties.FACING_EXCEPT_UP)) {
             return BlockStateProperties.FACING_EXCEPT_UP;
-        } else if(state.func_235901_b_(BlockStateProperties.HORIZONTAL_FACING)) {
+        } else if(state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
             return BlockStateProperties.HORIZONTAL_FACING;
         } else {
             return null;
@@ -234,9 +233,9 @@ public class WrenchItem extends Item {
     }
 
     protected static EnumProperty<Direction.Axis> getAxisProperty(BlockState state) {
-        if(state.func_235901_b_(BlockStateProperties.HORIZONTAL_AXIS)) {
+        if(state.hasProperty(BlockStateProperties.HORIZONTAL_AXIS)) {
             return BlockStateProperties.HORIZONTAL_AXIS;
-        } else if(state.func_235901_b_(BlockStateProperties.AXIS)) {
+        } else if(state.hasProperty(BlockStateProperties.AXIS)) {
             return BlockStateProperties.AXIS;
         } else {
             return null;
@@ -244,7 +243,7 @@ public class WrenchItem extends Item {
     }
 
     protected static EnumProperty<SlabType> getSlabTypeProperty(BlockState state) {
-        if(state.func_235901_b_(BlockStateProperties.SLAB_TYPE)) {
+        if(state.hasProperty(BlockStateProperties.SLAB_TYPE)) {
             return BlockStateProperties.SLAB_TYPE;
         } else {
             return null;
