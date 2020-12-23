@@ -1,5 +1,6 @@
 modLoader="javafml"
 loaderVersion="[35,)"
+license="MIT"
 issueTrackerURL="https://github.com/JAD3N/mc-wrench/issues"
 
 [[mods]]
