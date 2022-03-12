@@ -3,26 +3,26 @@ package bio.jaden.wrench.common.item;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import net.minecraft.block.BedBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.PistonHeadBlock;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.WallSignBlock;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.state.DirectionProperty;
-import net.minecraft.state.EnumProperty;
-import net.minecraft.state.Property;
-import net.minecraft.state.properties.BlockStateProperties;
-import net.minecraft.state.properties.ChestType;
-import net.minecraft.state.properties.SlabType;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.WallSignBlock;
+import net.minecraft.world.level.block.piston.PistonHeadBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.ChestType;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.level.block.state.properties.SlabType;
 
 public class WrenchItem extends Item {
     public WrenchItem(Properties properties) {
@@ -30,9 +30,9 @@ public class WrenchItem extends Item {
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        IWorld world = context.getWorld();
-        BlockPos pos = context.getPos();
+    public InteractionResult useOn(UseOnContext context) {
+        Level world = context.getLevel();
+        BlockPos pos = context.getClickedPos();
         BlockState state = world.getBlockState(pos);
         BlockState newState = null;
 
@@ -60,24 +60,24 @@ public class WrenchItem extends Item {
                 // fixes stairs and other blocks
                 newState = updatePostPlacement(world, pos, newState);
 
-                PlayerEntity player = context.getPlayer();
+                Player player = context.getPlayer();
                 SoundType soundType = state.getSoundType(world, pos, player);
 
-                world.setBlockState(pos, newState, 11);
-                world.playSound(player, pos, soundType.getPlaceSound(), SoundCategory.BLOCKS, 1.0f, random.nextFloat() * 0.4f + 0.8f);
+                world.setBlock(pos, newState, 11);
+                world.playSound(player, pos, soundType.getPlaceSound(), SoundSource.BLOCKS, 1.0f, world.random.nextFloat() * 0.4f + 0.8f);
 
                 if(player != null) {
                     // deal damage to item
-                    context.getItem().damageItem(1, player, (player2) -> {
-                        player2.sendBreakAnimation(context.getHand());
+                    context.getItemInHand().hurtAndBreak(1, player, (player2) -> {
+                        player2.broadcastBreakEvent(context.getHand());
                     });
                 }
 
-                return ActionResultType.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
 
-        return ActionResultType.FAIL;
+        return InteractionResult.FAIL;
     }
 
     protected static boolean isRotationAllowed(BlockState state) {
@@ -89,35 +89,35 @@ public class WrenchItem extends Item {
         }
 
         // check block is not extended (e.g. pistons)
-        if(state.hasProperty(BlockStateProperties.EXTENDED) && state.get(BlockStateProperties.EXTENDED)) {
+        if(state.hasProperty(BlockStateProperties.EXTENDED) && state.getValue(BlockStateProperties.EXTENDED)) {
             return false;
         }
 
         // check block is not a part of a chest
-        if(state.hasProperty(BlockStateProperties.CHEST_TYPE) && state.get(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
+        if(state.hasProperty(BlockStateProperties.CHEST_TYPE) && state.getValue(BlockStateProperties.CHEST_TYPE) != ChestType.SINGLE) {
             return false;
         }
 
         // check if double slab
-        if(state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.get(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
+        if(state.hasProperty(BlockStateProperties.SLAB_TYPE) && state.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE) {
             return false;
         }
 
         return true;
     }
 
-    protected static BlockState updatePostPlacement(IWorld world, BlockPos pos, BlockState state) {
+    protected static BlockState updatePostPlacement(Level world, BlockPos pos, BlockState state) {
         DirectionProperty directionProperty = getDirectionProperty(state);
 
         // check facing property
         if(directionProperty != null) {
-            Direction facing = state.get(directionProperty);
+            Direction facing = state.getValue(directionProperty);
 
             if(facing != null) {
-                BlockPos facingPos = pos.offset(facing);
+                BlockPos facingPos = pos.relative(facing);
                 BlockState facingState = world.getBlockState(facingPos);
 
-                state = state.updatePostPlacement(facing, facingState, world, pos, facingPos);
+                state = state.updateShape(facing, facingState, world, pos, facingPos);
             }
         }
 
@@ -129,8 +129,8 @@ public class WrenchItem extends Item {
             return null;
         }
 
-        T currentValue = state.get(property);
-        List<T> array = new ArrayList<>(property.getAllowedValues());
+        T currentValue = state.getValue(property);
+        List<T> array = new ArrayList<>(property.getPossibleValues());
 
         for(int i = array.size() - 1; i >= 0; i--) {
             T value = array.get(i);
@@ -155,12 +155,12 @@ public class WrenchItem extends Item {
         index = (index + 1) % array.size();
 
         T newValue = array.get(index);
-        BlockState newState = state.with(property, newValue);
+        BlockState newState = state.setValue(property, newValue);
 
         return newState;
     }
 
-    protected static BlockState rotateDirection(IWorld world, BlockPos pos, BlockState state) {
+    protected static BlockState rotateDirection(Level world, BlockPos pos, BlockState state) {
         DirectionProperty directionProperty = getDirectionProperty(state);
 
         // check facing property
@@ -169,22 +169,22 @@ public class WrenchItem extends Item {
         }
 
         Block block = state.getBlock();
-        Direction direction = state.get(directionProperty);
+        Direction direction = state.getValue(directionProperty);
 
         return rotateProperty(state, directionProperty, (dir) -> {
             if(dir == direction) {
                 return false;
             }
 
-            BlockState tmpState = state.with(directionProperty, dir);
-            boolean isValidPos = tmpState.isValidPosition(world, pos);
+            BlockState tmpState = state.setValue(directionProperty, dir);
+            boolean isValidPos = tmpState.canSurvive(world, pos);
 
-            BlockState facingState = world.getBlockState(pos.offset(dir, -1));
+            BlockState facingState = world.getBlockState(pos.relative(dir, -1));
             Block facingBlock = facingState.getBlock();
 
             // check that signs are not now attached to eachother
             if(isValidPos && facingBlock instanceof WallSignBlock && block instanceof WallSignBlock) {
-                if(facingState.get(directionProperty).getOpposite().equals(dir)) {
+                if(facingState.getValue(directionProperty).getOpposite().equals(dir)) {
                     isValidPos = false;
                 }
             }
@@ -193,7 +193,7 @@ public class WrenchItem extends Item {
         });
     }
 
-    protected static BlockState rotateAxis(IWorld world, BlockPos pos, BlockState state) {
+    protected static BlockState rotateAxis(Level world, BlockPos pos, BlockState state) {
         EnumProperty<Direction.Axis> axisProperty = getAxisProperty(state);
 
         // check facing property
@@ -204,7 +204,7 @@ public class WrenchItem extends Item {
         return rotateProperty(state, axisProperty, null);
     }
 
-    protected static BlockState rotateSlabType(IWorld world, BlockPos pos, BlockState state) {
+    protected static BlockState rotateSlabType(Level world, BlockPos pos, BlockState state) {
         EnumProperty<SlabType> slabTypeProperty = getSlabTypeProperty(state);
 
         // check facing property
@@ -216,15 +216,15 @@ public class WrenchItem extends Item {
         return rotateProperty(state, slabTypeProperty, (slabType) -> slabType == SlabType.DOUBLE);
     }
 
-    protected static BlockState rotateRotation(IWorld world, BlockPos pos, BlockState state) {
-        return rotateProperty(state, BlockStateProperties.ROTATION_0_15, null);
+    protected static BlockState rotateRotation(Level world, BlockPos pos, BlockState state) {
+        return rotateProperty(state, BlockStateProperties.ROTATION_16, null);
     }
 
     protected static DirectionProperty getDirectionProperty(BlockState state) {
         if(state.hasProperty(BlockStateProperties.FACING)) {
             return BlockStateProperties.FACING;
-        } else if(state.hasProperty(BlockStateProperties.FACING_EXCEPT_UP)) {
-            return BlockStateProperties.FACING_EXCEPT_UP;
+        } else if(state.hasProperty(BlockStateProperties.FACING_HOPPER)) {
+            return BlockStateProperties.FACING_HOPPER;
         } else if(state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
             return BlockStateProperties.HORIZONTAL_FACING;
         } else {
